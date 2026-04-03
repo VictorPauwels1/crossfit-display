@@ -42,20 +42,36 @@ function LogoCorner() {
 
 // ─── Écran IDLE ───────────────────────────────────────────────────────────────
 function Idle() {
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    const id = setInterval(() => setVisible((v) => !v), 1800);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <Center>
-      {/* Logo en arrière-plan */}
+      {/* Logo en arrière-plan — vert kawasaki */}
       <img
         src="/logo.svg"
         alt="CrossFit Soignies"
         style={{
-          position: "fixed", inset: 0, margin: "auto",
-          width: "55vw", opacity: 0.06,
-          pointerEvents: "none", filter: "invert(1)",
+          position:      "fixed", inset: 0, margin: "auto",
+          width:         "60vw", opacity: 0.08,
+          pointerEvents: "none",
+          // filtre pour passer du noir → vert kawasaki (#39FF14)
+          filter: "brightness(0) saturate(100%) invert(62%) sepia(90%) saturate(1500%) hue-rotate(70deg) brightness(1.15)",
         }}
       />
-      <div style={{ color: C.green, fontFamily: F.bebas, fontSize: "6vw", letterSpacing: 8, position: "relative" }}>CROSSFIT SOIGNIES</div>
-      <div style={{ color: C.muted, fontFamily: F.bebas, fontSize: "2.5vw", letterSpacing: 6, marginTop: 12, position: "relative" }}>
+      {/* Texte "EN ATTENTE DU WOD" en blanc, fade lent */}
+      <div style={{
+        color:      "#FFFFFF",
+        fontFamily: F.bebas,
+        fontSize:   "2.8vw",
+        letterSpacing: 10,
+        position:   "relative",
+        opacity:    visible ? 1 : 0.1,
+        transition: "opacity 1.2s ease-in-out",
+      }}>
         EN ATTENTE DU WOD
       </div>
     </Center>
