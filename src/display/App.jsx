@@ -25,12 +25,37 @@ function fmtTime(secs) {
   return `${pad(s / 60)}:${pad(s % 60)}`;
 }
 
+// ─── Logo coin (tous les écrans sauf idle) ────────────────────────────────────
+function LogoCorner() {
+  return (
+    <img
+      src="/logo.svg"
+      alt="CrossFit Soignies"
+      style={{
+        position: "fixed", bottom: "2vw", right: "2vw",
+        width: "8vw", opacity: 0.18, pointerEvents: "none",
+        filter: "invert(1)",
+      }}
+    />
+  );
+}
+
 // ─── Écran IDLE ───────────────────────────────────────────────────────────────
 function Idle() {
   return (
     <Center>
-      <div style={{ color: C.green, fontFamily: F.bebas, fontSize: "6vw", letterSpacing: 8 }}>CROSSFIT</div>
-      <div style={{ color: C.muted, fontFamily: F.bebas, fontSize: "2.5vw", letterSpacing: 6, marginTop: 12 }}>
+      {/* Logo en arrière-plan */}
+      <img
+        src="/logo.svg"
+        alt="CrossFit Soignies"
+        style={{
+          position: "fixed", inset: 0, margin: "auto",
+          width: "55vw", opacity: 0.06,
+          pointerEvents: "none", filter: "invert(1)",
+        }}
+      />
+      <div style={{ color: C.green, fontFamily: F.bebas, fontSize: "6vw", letterSpacing: 8, position: "relative" }}>CROSSFIT SOIGNIES</div>
+      <div style={{ color: C.muted, fontFamily: F.bebas, fontSize: "2.5vw", letterSpacing: 6, marginTop: 12, position: "relative" }}>
         EN ATTENTE DU WOD
       </div>
     </Center>
@@ -285,16 +310,20 @@ function BigStat({ label, value, color }) {
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const { state } = useSocket();
-  if (!state || state.screen === "idle")   return <Idle />;
-  if (state.screen === "recap")            return <Recap wod={state.wod} />;
-  if (state.screen === "finished")         return <Finished />;
-  if (state.screen === "section")          return (
-    <SectionScreen
-      wod={state.wod}
-      sectionIndex={state.sectionIndex}
-      exerciseIndex={state.exerciseIndex}
-      timer={state.timer}
-    />
+  if (!state || state.screen === "idle") return <Idle />;
+  return (
+    <>
+      <LogoCorner />
+      {state.screen === "recap"    && <Recap wod={state.wod} />}
+      {state.screen === "finished" && <Finished />}
+      {state.screen === "section"  && (
+        <SectionScreen
+          wod={state.wod}
+          sectionIndex={state.sectionIndex}
+          exerciseIndex={state.exerciseIndex}
+          timer={state.timer}
+        />
+      )}
+    </>
   );
-  return <Idle />;
 }
