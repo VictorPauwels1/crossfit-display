@@ -42,39 +42,40 @@ function LogoCorner() {
 
 // ─── Écran IDLE ───────────────────────────────────────────────────────────────
 function Idle() {
-  const [visible, setVisible] = useState(true);
-  useEffect(() => {
-    const id = setInterval(() => setVisible((v) => !v), 1800);
-    return () => clearInterval(id);
-  }, []);
-
   return (
-    <Center>
-      {/* Logo en arrière-plan — vert kawasaki */}
-      <img
-        src="/logo.svg"
-        alt="CrossFit Soignies"
-        style={{
-          position:      "fixed", inset: 0, margin: "auto",
-          width:         "60vw", opacity: 0.08,
-          pointerEvents: "none",
-          // filtre pour passer du noir → vert kawasaki (#39FF14)
-          filter: "brightness(0) saturate(100%) invert(62%) sepia(90%) saturate(1500%) hue-rotate(70deg) brightness(1.15)",
-        }}
-      />
-      {/* Texte "EN ATTENTE DU WOD" en blanc, fade lent */}
-      <div style={{
-        color:      "#FFFFFF",
-        fontFamily: F.bebas,
-        fontSize:   "2.8vw",
-        letterSpacing: 10,
-        position:   "relative",
-        opacity:    visible ? 1 : 0.1,
-        transition: "opacity 1.2s ease-in-out",
-      }}>
-        EN ATTENTE DU WOD
-      </div>
-    </Center>
+    <>
+      <style>{`
+        @keyframes cf-pulse {
+          0%   { opacity: 0.15; }
+          50%  { opacity: 1;    }
+          100% { opacity: 0.15; }
+        }
+      `}</style>
+      <Center>
+        {/* Logo en arrière-plan — vert kawasaki, fixe */}
+        <img
+          src="/logo.svg"
+          alt="CrossFit Soignies"
+          style={{
+            position:      "fixed", inset: 0, margin: "auto",
+            width:         "60vw", opacity: 0.20,
+            pointerEvents: "none",
+            filter:        "brightness(0) saturate(100%) invert(55%) sepia(100%) saturate(3000%) hue-rotate(75deg) brightness(1.4)",
+          }}
+        />
+        {/* Texte blanc en fade continu */}
+        <div style={{
+          color:         "#FFFFFF",
+          fontFamily:    F.bebas,
+          fontSize:      "2.8vw",
+          letterSpacing: 10,
+          position:      "relative",
+          animation:     "cf-pulse 3s ease-in-out infinite",
+        }}>
+          EN ATTENTE DU WOD
+        </div>
+      </Center>
+    </>
   );
 }
 
