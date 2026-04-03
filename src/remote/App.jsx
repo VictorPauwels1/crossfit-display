@@ -155,6 +155,102 @@ function SelectScreen({ onSelect }) {
   );
 }
 
+// ─── StaggerSelector : gestion des groupes EMOM / Every N Min ────────────────
+function StaggerSelector({ section, state, send }) {
+  const exercises   = section.exercises || [];
+  const current     = state.exerciseIndex ?? 0;
+  const pending     = state.pendingExerciseIndex ?? null;
+  const isRunning   = state.timer?.status === "running";
+  const intervalSec = state.timer?.intervalSecs || 60;
+
+  if (exercises.length === 0) return null;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ color: C.muted, fontFamily: F.sans, fontSize: "0.7rem", letterSpacing: 2, textTransform: "uppercase" }}>
+        Groupes
+      </div>
+
+      {exercises.map((ex, i) => {
+        const isCurrent = i === current;
+        const isPending = i === pending;
+        const color     = isCurrent ? C.green : isPending ? C.orange : C.border;
+
+        return (
+          <div key={ex.id} style={{
+            border:       `2px solid ${color}`,
+            borderRadius: 10,
+            padding:      "10px 14px",
+            background:   isCurrent ? C.green + "12" : isPending ? C.orange + "10" : "none",
+            display:      "flex",
+            alignItems:   "center",
+            gap:          12,
+          }}>
+            {/* Badge groupe */}
+            <div style={{
+              width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+              background:  isCurrent ? C.green : isPending ? C.orange : C.border,
+              color:       isCurrent || isPending ? "#000" : C.muted,
+              display:     "flex", alignItems: "center", justifyContent: "center",
+              fontFamily:  F.bebas, fontSize: "1rem",
+            }}>
+              {i + 1}
+            </div>
+
+            {/* Nom exercice */}
+            <div style={{ flex: 1 }}>
+              <div style={{ color: isCurrent ? C.green : isPending ? C.orange : C.white, fontFamily: F.bebas, fontSize: "1rem", letterSpacing: 2 }}>
+                {ex.name || `Exercice ${i + 1}`}
+              </div>
+              {(ex.reps || ex.weight) && (
+                <div style={{ color: C.muted, fontFamily: F.sans, fontSize: "0.75rem", marginTop: 2 }}>
+                  {[ex.reps, ex.weight].filter(Boolean).join(" · ")}
+                </div>
+              )}
+              {isPending && (
+                <div style={{ color: C.orange, fontFamily: F.sans, fontSize: "0.7rem", marginTop: 2 }}>
+                  → à la prochaine minute
+                </div>
+              )}
+            </div>
+
+            {/* Actions (seulement si pas déjà courant) */}
+            {!isCurrent && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                <button
+                  onClick={() => send({ type: "SET_EXERCISE", index: i })}
+                  style={{
+                    background: C.green + "22", border: `1px solid ${C.green}`,
+                    color: C.green, fontFamily: F.bebas, fontSize: "0.7rem",
+                    letterSpacing: 2, padding: "4px 10px", borderRadius: 5, cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  MAINTENANT
+                </button>
+                {isRunning && (
+                  <button
+                    onClick={() => send({ type: "QUEUE_EXERCISE", index: isPending ? null : i })}
+                    style={{
+                      background: isPending ? C.orange + "30" : C.orange + "15",
+                      border:    `1px solid ${C.orange}`,
+                      color:      C.orange, fontFamily: F.bebas, fontSize: "0.7rem",
+                      letterSpacing: 2, padding: "4px 10px", borderRadius: 5, cursor: "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {isPending ? "ANNULER" : `+${fmtTime(intervalSec)}`}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Écran contrôle ───────────────────────────────────────────────────────────
 function ControlScreen({ state, send }) {
   const [delay, setDelay] = useState("");
@@ -167,6 +263,7 @@ function ControlScreen({ state, send }) {
   const timerActive = timer?.status === "running" || timer?.status === "paused" || timer?.status === "delay";
   const accentColor = timer?.status === "delay" ? C.orange : C.green;
   const isForTime   = format === "fortime";
+  const isStaggered = ["emom", "each_nmin"].includes(format);
 
   const sectionLabel = section ? (section.customName || PRESET_LABELS[section.preset] || section.preset) : "";
 
@@ -197,12 +294,8 @@ function ControlScreen({ state, send }) {
           {sections.map((s, i) => (
             <div key={s.id} style={{
               flex: 1, height: 4, borderRadius: 2,
-              background: screen === "recap"
-                ? C.border
-                : i < sectionIndex ? C.green
-                : i === sectionIndex ? C.green
-                : C.border,
-              opacity: screen === "recap" ? 0.4 : i === sectionIndex ? 1 : i < sectionIndex ? 0.5 : 0.2,
+              background: i <= sectionIndex && screen !== "recap" ? C.green : C.border,
+              opacity:    screen === "recap" ? 0.3 : i === sectionIndex ? 1 : i < sectionIndex ? 0.5 : 0.2,
             }} />
           ))}
         </div>
@@ -210,13 +303,13 @@ function ControlScreen({ state, send }) {
 
       {/* Timer affiché */}
       {screen === "section" && hasTimer && timer && timer.status !== "idle" && (
-        <div style={{ textAlign: "center", padding: "8px 0" }}>
+        <div style={{ textAlign: "center", padding: "4px 0" }}>
           <div style={{ color: accentColor, fontFamily: F.bebas, fontSize: "3rem", letterSpacing: 4 }}>
             {timer.status === "delay"
-            ? fmtTime(timer.delayRemaining)
-            : (isForTime && timer.totalDuration === 0)
-              ? fmtTime(timer.elapsed)
-              : fmtTime(timer.remaining)}
+              ? fmtTime(timer.delayRemaining)
+              : (isForTime && timer.totalDuration === 0)
+                ? fmtTime(timer.elapsed)
+                : fmtTime(timer.remaining)}
           </div>
           <div style={{ color: C.muted, fontFamily: F.sans, fontSize: "0.75rem" }}>
             {timer.status === "delay" ? "DÉPART DANS..."
@@ -225,6 +318,11 @@ function ControlScreen({ state, send }) {
               : "EN COURS"}
           </div>
         </div>
+      )}
+
+      {/* Stagger selector — EMOM & Every N Min */}
+      {screen === "section" && isStaggered && (
+        <StaggerSelector section={section} state={state} send={send} />
       )}
 
       {/* Navigation sections */}

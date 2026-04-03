@@ -9,10 +9,11 @@ const PORT      = 3000;
 
 // ─── État global ─────────────────────────────────────────────────────────────
 let state = {
-  screen:         "idle",   // idle | recap | section | finished
-  wod:            null,
-  sectionIndex:   0,        // index dans wod.sections[]
-  exerciseIndex:  0,        // pour les formats avec rotation (amrap/emom/each_nmin)
+  screen:              "idle",   // idle | recap | section | finished
+  wod:                 null,
+  sectionIndex:        0,        // index dans wod.sections[]
+  exerciseIndex:       0,        // pour les formats avec rotation (amrap/emom/each_nmin)
+  pendingExerciseIndex: null,    // exercice à activer à la prochaine transition d'intervalle
   timer: {
     status:        "idle",  // idle | delay | running | paused | finished
     delayRemaining: 0,
@@ -126,9 +127,18 @@ function startTimerLoop(wss) {
         // Countdown global + rotation d'exercices
         t.remaining -= 1;
         if (t.intervalSecs > 0) {
-          const elapsed = t.totalDuration - t.remaining;
-          const newIdx  = Math.floor(elapsed / t.intervalSecs) % (section.exercises?.length || 1);
-          state.exerciseIndex = newIdx;
+          const elapsed     = t.totalDuration - t.remaining;
+          const count       = section.exercises?.length || 1;
+          const intervalIdx = Math.floor(elapsed / t.intervalSecs);
+          const isTransition = elapsed > 0 && elapsed % t.intervalSecs === 0;
+
+          if (isTransition && state.pendingExerciseIndex !== null) {
+            // Appliquer l'exercice en attente à cette transition
+            state.exerciseIndex      = state.pendingExerciseIndex % count;
+            state.pendingExerciseIndex = null;
+          } else {
+            state.exerciseIndex = intervalIdx % count;
+          }
         }
         if (t.remaining <= 0) {
           t.remaining = 0;
@@ -245,10 +255,22 @@ wss.on("connection", (ws) => {
       case "RESET_TIMER": {
         stopTimer();
         const t = getSectionTimer(currentSection());
-        state.exerciseIndex = 0;
+        state.exerciseIndex        = 0;
+        state.pendingExerciseIndex = null;
         state.timer = { status: "idle", delayRemaining: 0, ...t };
         break;
       }
+
+      case "SET_EXERCISE":
+        // Bascule immédiatement sur l'exercice demandé
+        state.exerciseIndex       = msg.index;
+        state.pendingExerciseIndex = null;
+        break;
+
+      case "QUEUE_EXERCISE":
+        // Active cet exercice à la prochaine transition d'intervalle
+        state.pendingExerciseIndex = msg.index;
+        break;
 
       case "RESET":
         stopTimer();
